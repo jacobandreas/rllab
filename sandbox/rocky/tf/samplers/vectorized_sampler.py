@@ -17,6 +17,7 @@ class VectorizedSampler(BaseSampler):
         self.vec_env = VecEnvExecutor(
             self.algo.env,
             n=estimated_envs,
+            #n=1,
             max_path_length=self.algo.max_path_length
         )
         self.env_spec = self.algo.env.spec

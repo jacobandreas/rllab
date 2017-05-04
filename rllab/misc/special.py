@@ -49,7 +49,8 @@ def explained_variance_1d(ypred, y):
         else:
             return 1
     if abs(1 - np.var(y - ypred) / (vary + 1e-8)) > 1e5:
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
+        return 1e5
     return 1 - np.var(y - ypred) / (vary + 1e-8)
 
 

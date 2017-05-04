@@ -1,21 +1,29 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
-from rllab.algos.trpo import TRPO
+#from rllab.algos.trpo import TRPO
 from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from rllab.envs.gym_env import GymEnv
-from rllab.envs.normalized_env import normalize
+from sandbox.rocky.tf.envs.base import TfEnv
+#from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
-from rllab.policies.gaussian_mlp_policy import GaussianMLPPolicy
+#from rllab.policies.gaussian_mlp_policy import GaussianMLPPolicy
 
-stub(globals())
+from sandbox.rocky.tf.algos.trpo import TRPO
+from sandbox.rocky.tf.policies.gaussian_mlp_policy import GaussianMLPPolicy
 
-env = normalize(GymEnv("Pendulum-v0"))
+
+
+#stub(globals())
+
+#env = normalize(GymEnv("Pendulum-v0"))
+env = TfEnv(GymEnv("Ant-v1"))
 
 policy = GaussianMLPPolicy(
+    "policy",
     env_spec=env.spec,
     # The neural network policy should have two hidden layers, each with 32 hidden units.
-    hidden_sizes=(8, 8)
+    #hidden_sizes=(8, 8)
 )
 
 baseline = LinearFeatureBaseline(env_spec=env.spec)
@@ -29,18 +37,21 @@ algo = TRPO(
     n_itr=50,
     discount=0.99,
     step_size=0.01,
+    entropy_bonus=0,
     # Uncomment both lines (this and the plot parameter below) to enable plotting
     # plot=True,
 )
 
-run_experiment_lite(
-    algo.train(),
-    # Number of parallel workers for sampling
-    n_parallel=1,
-    # Only keep the snapshot parameters for the last iteration
-    snapshot_mode="last",
-    # Specifies the seed for the experiment. If this is not provided, a random seed
-    # will be used
-    seed=1,
-    # plot=True,
-)
+#run_experiment_lite(
+#    algo.train(),
+#    # Number of parallel workers for sampling
+#    n_parallel=1,
+#    # Only keep the snapshot parameters for the last iteration
+#    snapshot_mode="last",
+#    # Specifies the seed for the experiment. If this is not provided, a random seed
+#    # will be used
+#    seed=1,
+#    # plot=True,
+#)
+
+algo.train()

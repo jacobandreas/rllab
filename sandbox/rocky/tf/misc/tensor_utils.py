@@ -13,7 +13,8 @@ def compile_function(inputs, outputs, log_name=None):
 
 
 def flatten_tensor_variables(ts):
-    return tf.concat(0, [tf.reshape(x, [-1]) for x in ts])
+    #return tf.concat(0, [tf.reshape(x, [-1]) for x in ts])
+    return tf.concat([tf.reshape(x, [-1]) for x in ts], axis=0)
 
 
 def unflatten_tensor_variables(flatarr, shapes, symb_arrs):

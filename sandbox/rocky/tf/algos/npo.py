@@ -20,6 +20,7 @@ class NPO(BatchPolopt):
             optimizer=None,
             optimizer_args=None,
             step_size=0.01,
+            entropy_bonus=None,
             **kwargs):
         if optimizer is None:
             if optimizer_args is None:
@@ -27,6 +28,8 @@ class NPO(BatchPolopt):
             optimizer = PenaltyLbfgsOptimizer(**optimizer_args)
         self.optimizer = optimizer
         self.step_size = step_size
+        assert entropy_bonus is not None
+        self.entropy_bonus = entropy_bonus
         super(NPO, self).__init__(**kwargs)
 
     @overrides
@@ -67,12 +70,15 @@ class NPO(BatchPolopt):
         dist_info_vars = self.policy.dist_info_sym(obs_var, state_info_vars)
         kl = dist.kl_sym(old_dist_info_vars, dist_info_vars)
         lr = dist.likelihood_ratio_sym(action_var, old_dist_info_vars, dist_info_vars)
+        ent = dist.entropy_sym(dist_info_vars)
+        #ent = 0
         if is_recurrent:
+            assert False
             mean_kl = tf.reduce_sum(kl * valid_var) / tf.reduce_sum(valid_var)
             surr_loss = - tf.reduce_sum(lr * advantage_var * valid_var) / tf.reduce_sum(valid_var)
         else:
             mean_kl = tf.reduce_mean(kl)
-            surr_loss = - tf.reduce_mean(lr * advantage_var)
+            surr_loss = - tf.reduce_mean(lr * advantage_var + self.entropy_bonus * ent)
 
         input_list = [
                          obs_var,

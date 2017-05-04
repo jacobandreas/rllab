@@ -22,7 +22,9 @@ class VPG(BatchPolopt, Serializable):
             baseline,
             optimizer=None,
             optimizer_args=None,
+            entropy_bonus=None,
             **kwargs):
+        assert entropy_bonus is not None
         Serializable.quick_init(self, locals())
         if optimizer is None:
             default_args = dict(
@@ -36,6 +38,7 @@ class VPG(BatchPolopt, Serializable):
             optimizer = FirstOrderOptimizer(**optimizer_args)
         self.optimizer = optimizer
         self.opt_info = None
+        self.entropy_bonus = entropy_bonus
         super(VPG, self).__init__(env=env, policy=policy, baseline=baseline, **kwargs)
 
     @overrides
@@ -77,15 +80,17 @@ class VPG(BatchPolopt, Serializable):
         dist_info_vars = self.policy.dist_info_sym(obs_var, state_info_vars)
         logli = dist.log_likelihood_sym(action_var, dist_info_vars)
         kl = dist.kl_sym(old_dist_info_vars, dist_info_vars)
+        ent = dist.entropy_sym(dist_info_vars)
 
         # formulate as a minimization problem
         # The gradient of the surrogate objective is the policy gradient
         if is_recurrent:
+            assert False # add entropy term
             surr_obj = - tf.reduce_sum(logli * advantage_var * valid_var) / tf.reduce_sum(valid_var)
             mean_kl = tf.reduce_sum(kl * valid_var) / tf.reduce_sum(valid_var)
             max_kl = tf.reduce_max(kl * valid_var)
         else:
-            surr_obj = - tf.reduce_mean(logli * advantage_var)
+            surr_obj = - tf.reduce_mean(logli * advantage_var + self.entropy_bonus * ent)
             mean_kl = tf.reduce_mean(kl)
             max_kl = tf.reduce_max(kl)
 

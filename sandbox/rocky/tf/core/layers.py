@@ -23,7 +23,10 @@ def create_param(spec, shape, name, trainable=True, regularizable=True):
         # do not regularize this variable
         regularizer = lambda _: tf.constant(0.)
     return tf.get_variable(
-        name=name, shape=shape, initializer=spec, trainable=trainable,
+        name=name, shape=shape, 
+        #initializer=spec, 
+        initializer=tf.uniform_unit_scaling_initializer(factor=1.43),
+        trainable=trainable,
         regularizer=regularizer, dtype=tf.float32
     )
 
@@ -257,7 +260,7 @@ class ConcatLayer(MergeLayer):
 concat = ConcatLayer  # shortcut
 
 
-def xavier_init(shape, dtype=tf.float32):
+def xavier_init(shape, dtype=tf.float32, **kwargs):
     if len(shape) == 2:
         n_inputs, n_outputs = shape
     else:
@@ -266,7 +269,6 @@ def xavier_init(shape, dtype=tf.float32):
         n_outputs = shape[-1] * receptive_field_size
     init_range = math.sqrt(6.0 / (n_inputs + n_outputs))
     return tf.random_uniform_initializer(-init_range, init_range, dtype=dtype)(shape)
-
 
 def he_init(shape, dtype=tf.float32):
     if len(shape) == 2:
@@ -297,7 +299,8 @@ class ParamLayer(Layer):
     def get_output_for(self, input, **kwargs):
         ndim = input.get_shape().ndims
         reshaped_param = tf.reshape(self.param, (1,) * (ndim - 1) + (self.num_units,))
-        tile_arg = tf.concat(0, [tf.shape(input)[:ndim - 1], [1]])
+        #tile_arg = tf.concat(0, [tf.shape(input)[:ndim - 1], [1]])
+        tile_arg = tf.concat([tf.shape(input)[:ndim - 1], [1]], axis=0)
         tiled = tf.tile(reshaped_param, tile_arg)
         return tiled
 

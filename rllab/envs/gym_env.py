@@ -4,7 +4,8 @@ from __future__ import absolute_import
 import gym
 import gym.envs
 import gym.spaces
-from gym.monitoring import monitor
+### from gym.monitoring import monitor
+from gym.wrappers import Monitor
 import os
 import os.path as osp
 from rllab.envs.base import Env, Step
@@ -26,8 +27,10 @@ def convert_gym_space(space):
 
 class CappedCubicVideoSchedule(object):
     def __call__(self, count):
-        return monitor.capped_cubic_video_schedule(count)
-
+        if count < 1000:
+            return int(round(count ** (1. / 3))) ** 3 == count
+        else:
+            return count % 1000 == 0
 
 class FixedIntervalVideoSchedule(object):
 
@@ -44,7 +47,8 @@ class NoVideoSchedule(object):
 
 
 class GymEnv(Env, Serializable):
-    def __init__(self, env_name, record_video=True, video_schedule=None, log_dir=None):
+    def __init__(self, env_name, record_video=True, video_schedule=None,
+            log_dir=None, force_reset=False):
         if log_dir is None:
             if logger.get_snapshot_dir() is None:
                 logger.log("Warning: skipping Gym environment monitoring since snapshot_dir not configured.")
@@ -56,23 +60,31 @@ class GymEnv(Env, Serializable):
         self.env = env
         self.env_id = env.spec.id
 
-        monitor.logger.setLevel(logging.WARNING)
-
         if log_dir is None:
             self.monitoring = False
         else:
-            if not record_video:
-                video_schedule = NoVideoSchedule()
-            else:
-                if video_schedule is None:
-                    video_schedule = CappedCubicVideoSchedule()
-            self.env.monitor.start(log_dir, video_schedule)
+            if video_schedule is None:
+                video_schedule = CappedCubicVideoSchedule()
+            self.env = Monitor(self.env, log_dir, video_callable=video_schedule, force=True)
             self.monitoring = True
+
+        ### monitor.logger.setLevel(logging.WARNING)
+        ### if log_dir is None:
+        ###     self.monitoring = False
+        ### else:
+        ###     if not record_video:
+        ###         video_schedule = NoVideoSchedule()
+        ###     else:
+        ###         if video_schedule is None:
+        ###             video_schedule = CappedCubicVideoSchedule()
+        ###     self.env.monitor.start(log_dir, video_schedule)
+        ###     self.monitoring = True
 
         self._observation_space = convert_gym_space(env.observation_space)
         self._action_space = convert_gym_space(env.action_space)
         self._horizon = env.spec.timestep_limit
         self._log_dir = log_dir
+        self._force_reset = force_reset
 
     @property
     def observation_space(self):
@@ -87,6 +99,13 @@ class GymEnv(Env, Serializable):
         return self._horizon
 
     def reset(self):
+        #return self.env.reset()
+        if self._force_reset and self.monitoring:
+            from gym.wrappers.monitoring import Monitor
+            assert isinstance(self.env, Monitor)
+            recorder = self.env.stats_recorder
+            if recorder is not None:
+                recorder.done = True
         return self.env.reset()
 
     def step(self, action):
